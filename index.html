@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kex Dial</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS for WebRTC Calling -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white flex justify-center items-center h-screen m-0 overflow-hidden">
+
+    <!-- S24 Mobile Frame Container -->
+    <div class="w-full sm:w-[380px] h-full sm:h-[820px] sm:rounded-[40px] bg-slate-900 text-slate-100 flex flex-col shadow-2xl overflow-hidden relative border border-slate-800">
+        
+        <!-- ================= PAGE 1: DIAL SCREEN ================= -->
+        <div id="screen-dial" class="flex flex-col h-full relative">
+            
+            <!-- Custom Blue & Purple Drip Header -->
+            <div class="w-full h-44 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 relative p-6 flex justify-between items-start shadow-lg" style="clip-path: ellipse(150% 100% at 50% 0%);">
+                <h1 class="text-3xl font-black tracking-wider text-white drop-shadow">KEX <span class="text-cyan-200">DIAL</span></h1>
+                <div class="text-right">
+                    <span class="text-[10px] uppercase text-cyan-200 font-semibold tracking-wider block">KexID</span>
+                    <span id="my-id-display" class="text-xs font-bold text-white font-mono tracking-wider bg-black/30 px-2.5 py-1 rounded-full border border-white/10">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col items-center justify-center p-6 space-y-8">
+                
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold tracking-tight text-slate-200">ENTER ID</h2>
+                    <p class="text-xs text-slate-400 mt-1">Input your contact's KexID</p>
+                </div>
+
+                <!-- ID Input Box -->
+                <div class="w-full max-w-xs">
+                    <input type="text" id="peer-id-input" placeholder="e.g. kex-xyz" class="w-full bg-slate-950/60 border-2 border-slate-700 rounded-2xl py-3.5 px-4 text-center text-xl font-mono tracking-widest text-cyan-300 focus:outline-none focus:border-cyan-400 placeholder-slate-600 uppercase transition shadow-inner" maxlength="7">
+                </div>
+
+                <!-- Call & Video Action Buttons -->
+                <div class="flex space-x-10 mt-2">
+                    <div class="flex flex-col items-center space-y-2">
+                        <button onclick="startCall('audio')" class="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 active:scale-95 transition shadow-lg">
+                            <span class="text-3xl">📞</span>
+                        </button>
+                        <span class="text-xs font-semibold tracking-wider text-slate-400">CALL</span>
+                    </div>
+
+                    <div class="flex flex-col items-center space-y-2">
+                        <button onclick="startCall('video')" class="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 active:scale-95 transition shadow-lg">
+                            <span class="text-3xl">📹</span>
+                        </button>
+                        <span class="text-xs font-semibold tracking-wider text-slate-400">VIDEO</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= PAGE 2: ACTIVE CALL SCREEN ================= -->
+        <div id="screen-call" class="hidden flex flex-col h-full relative bg-slate-900">
+            
+            <!-- Video Elements Container -->
+            <div id="video-wrapper" class="hidden absolute inset-0 bg-black z-0">
+                <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                <video id="local-video" autoplay muted playsinline class="w-28 h-36 object-cover absolute top-6 left-6 rounded-2xl border-2 border-cyan-400 shadow-2xl"></video>
+            </div>
+
+            <!-- Audio Call Header -->
+            <div id="audio-header-wave" class="w-full h-56 bg-gradient-to-b from-slate-800 to-slate-900 relative p-6 flex flex-col justify-end shadow-md border-b border-slate-800">
+                <h2 id="caller-name-display" class="text-4xl font-black text-white tracking-tight">TOAST</h2>
+                <p id="call-status-text" class="text-xs font-medium text-cyan-400 mt-1">Calling with custom ringtone...</p>
+                <div class="w-full h-0.5 bg-cyan-500/50 mt-3"></div>
+            </div>
+
+            <!-- Bottom Control Panel for Calls -->
+            <div class="mt-auto z-10 w-full bg-slate-950/80 backdrop-blur border-t border-slate-800 p-6 flex justify-around items-center">
+                <div class="flex flex-col items-center space-y-1">
+                    <button onclick="toggleMute()" id="mute-btn" class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
+                        <span class="text-2xl">🎙️</span>
+                    </button>
+                    <span id="mute-text" class="text-xs font-semibold text-slate-400">Mute</span>
+                </div>
+
+                <div id="cam-control-box" class="hidden flex flex-col items-center space-y-1">
+                    <button onclick="toggleCam()" id="cam-btn" class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
+                        <span class="text-2xl">📷</span>
+                    </button>
+                    <span class="text-xs font-semibold text-slate-400">Cam</span>
+                </div>
+
+                <div class="flex flex-col items-center space-y-1">
+                    <button onclick="endCall()" class="w-16 h-16 rounded-2xl bg-red-600 border border-red-500 flex items-center justify-center shadow-lg active:scale-95 transition">
+                        <span class="text-2xl text-white">📴</span>
+                    </button>
+                    <span class="text-xs font-semibold text-red-400">End</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Incoming Call Overlay Popup -->
+    <div id="incoming-modal" class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-xs text-center shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-white">Incoming Call...</h3>
+            <p id="incoming-id-text" class="text-sm font-mono text-cyan-400 font-bold bg-slate-950 py-2 rounded-xl border border-slate-800"></p>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="acceptIncomingCall()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold text-sm shadow transition">Accept</button>
+                <button onclick="rejectIncomingCall()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-2xl font-bold text-sm shadow transition">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Custom MP3 Ringtone Audio Element -->
+    <!-- Replace the src attribute with your hosted MP3 file link (e.g. GitHub raw link, Netlify asset, or base64 data URL) -->
+    <audio id="custom-ringtone" loop preload="auto">
+        <source src="" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let peer;
+        let currentCall;
+        let localStream;
+        let incomingCallData;
+        let isMuted = false;
+        let isCamOff = false;
+        
+        const ringtoneAudio = document.getElementById('custom-ringtone');
+
+        function startRingtone() {
+            // If you have a direct URL or base64 string loaded into the audio source:
+            ringtoneAudio.currentTime = 0;
+            ringtoneAudio.play().catch(e => {
+                console.log("Audio autoplay restricted by browser policy until interaction:", e);
+            });
+        }
+
+        function stopRingtone() {
+            ringtoneAudio.pause();
+            ringtoneAudio.currentTime = 0;
+        }
+
+        function generateId() {
+            const chars = 'abcdefghijklmnopqrstuvwxyz';
+            let res = 'kex-';
+            for(let i = 0; i < 3; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+            return res;
+        }
+
+        function initApp() {
+            let myId = localStorage.getItem('kex_s24_clean_id');
+            if(!myId) {
+                myId = generateId();
+                localStorage.setItem('kex_s24_clean_id', myId);
+            }
+
+            peer = new Peer(myId);
+
+            peer.on('open', (id) => {
+                document.getElementById('my-id-display').textContent = id;
+            });
+
+            peer.on('error', (err) => {
+                if(err.type === 'unavailable-id') {
+                    localStorage.setItem('kex_s24_clean_id', generateId());
+                    location.reload();
+                }
+            });
+
+            peer.on('call', (call) => {
+                incomingCallData = call;
+                document.getElementById('incoming-id-text').textContent = call.peer;
+                document.getElementById('incoming-modal').classList.remove('hidden');
+                startRingtone();
+            });
+        }
+
+        async function startCall(type) {
+            const targetId = document.getElementById('peer-id-input').value.trim().toLowerCase();
+            if(!targetId) {
+                alert("Please enter a valid ID first.");
+                return;
+            }
+
+            try {
+                const constraints = { audio: true, video: (type === 'video') };
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                if(type === 'video') {
+                    document.getElementById('local-video').srcObject = localStream;
+                }
+
+                currentCall = peer.call(targetId, localStream);
+                setupCallHandlers();
+                showCallScreen(targetId, type);
+                startRingtone();
+            } catch(error) {
+                alert("Camera or microphone access error occurred.");
+                console.error(error);
+            }
+        }
+
+        async function acceptIncomingCall() {
+            document.getElementById('incoming-modal').classList.add('hidden');
+            stopRingtone();
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                document.getElementById('local-video').srcObject = localStream;
+
+                incomingCallData.answer(localStream);
+                currentCall = incomingCallData;
+                setupCallHandlers();
+                showCallScreen(incomingCallData.peer, 'video');
+            } catch(error) {
+                alert("Media permission error occurred.");
+            }
+        }
+
+        function rejectIncomingCall() {
+            document.getElementById('incoming-modal').classList.add('hidden');
+            stopRingtone();
+            if(incomingCallData) incomingCallData.close();
+        }
+
+        function setupCallHandlers() {
+            currentCall.on('stream', (remoteStream) => {
+                stopRingtone();
+                document.getElementById('call-status-text').textContent = "Connected";
+                document.getElementById('remote-video').srcObject = remoteStream;
+            });
+
+            currentCall.on('close', () => {
+                endCall();
+            });
+        }
+
+        function showCallScreen(peerId, type) {
+            document.getElementById('screen-dial').classList.add('hidden');
+            document.getElementById('screen-call').classList.remove('hidden');
+            document.getElementById('caller-name-display').textContent = peerId.toUpperCase();
+
+            if(type === 'video') {
+                document.getElementById('video-wrapper').classList.remove('hidden');
+                document.getElementById('audio-header-wave').classList.add('hidden');
+                document.getElementById('cam-control-box').classList.remove('hidden');
+            } else {
+                document.getElementById('video-wrapper').classList.add('hidden');
+                document.getElementById('audio-header-wave').classList.remove('hidden');
+                document.getElementById('cam-control-box').classList.add('hidden');
+            }
+        }
+
+        function toggleMute() {
+            if(!localStream) return;
+            isMuted = !isMuted;
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            document.getElementById('mute-btn').style.background = isMuted ? '#dc2626' : '#1e293b';
+        }
+
+        function toggleCam() {
+            if(!localStream) return;
+            isCamOff = !isCamOff;
+            localStream.getVideoTracks().forEach(track => track.enabled = !isCamOff);
+            document.getElementById('cam-btn').style.background = isCamOff ? '#dc2626' : '#1e293b';
+        }
+
+        function endCall() {
+            stopRingtone();
+            if(currentCall) currentCall.close();
+            if(localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('screen-call').classList.add('hidden');
+            document.getElementById('screen-dial').classList.remove('hidden');
+            document.getElementById('video-wrapper').classList.add('hidden');
+            currentCall = null;
+            localStream = null;
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
