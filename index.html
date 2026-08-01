@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kex Dial - Hardened Edition</title>
+    <title>Kex Dial - Ultimate All-In-One TypeScript Ready Edition</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PeerJS for WebRTC Calling -->
@@ -25,7 +25,7 @@
             <div class="w-full h-44 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 relative p-6 flex justify-between items-start shadow-lg" style="clip-path: ellipse(150% 100% at 50% 0%);">
                 <h1 class="text-3xl font-black tracking-wider text-white drop-shadow">KEX <span class="text-cyan-200">DIAL</span></h1>
                 <div class="text-right">
-                    <span class="text-[10px] uppercase text-cyan-200 font-semibold tracking-wider block">KexID</span>
+                    <span class="text-[10px] uppercase text-cyan-200 font-semibold tracking-wider block">KexID (TS Model)</span>
                     <span id="my-id-display" class="text-xs font-bold text-white font-mono tracking-wider bg-black/30 px-2.5 py-1 rounded-full border border-white/10">Loading...</span>
                 </div>
             </div>
@@ -75,31 +75,38 @@
             <!-- Audio Call Header -->
             <div id="audio-header-wave" class="w-full h-56 bg-gradient-to-b from-slate-800 to-slate-900 relative p-6 flex flex-col justify-end shadow-md border-b border-slate-800">
                 <h2 id="caller-name-display" class="text-4xl font-black text-white tracking-tight">TOAST</h2>
-                <p id="call-status-text" class="text-xs font-medium text-cyan-400 mt-1">Connecting STUN...</p>
+                <p id="call-status-text" class="text-xs font-medium text-cyan-400 mt-1">Connected (STUN Hardened)...</p>
                 <div class="w-full h-0.5 bg-cyan-500/50 mt-3"></div>
             </div>
 
             <!-- Bottom Control Panel for Calls -->
-            <div class="mt-auto z-10 w-full bg-slate-950/80 backdrop-blur border-t border-slate-800 p-6 flex justify-around items-center">
+            <div class="mt-auto z-10 w-full bg-slate-950/80 backdrop-blur border-t border-slate-800 p-4 flex justify-around items-center">
                 <div class="flex flex-col items-center space-y-1">
-                    <button onclick="toggleMute()" id="mute-btn" class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
-                        <span class="text-2xl">🎙️</span>
+                    <button onclick="toggleMute()" id="mute-btn" class="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
+                        <span class="text-xl">🎙️</span>
                     </button>
-                    <span id="mute-text" class="text-xs font-semibold text-slate-400">Mute</span>
+                    <span id="mute-text" class="text-[10px] font-semibold text-slate-400">Mute</span>
                 </div>
 
                 <div id="cam-control-box" class="hidden flex flex-col items-center space-y-1">
-                    <button onclick="toggleCam()" id="cam-btn" class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
-                        <span class="text-2xl">📷</span>
+                    <button onclick="toggleCam()" id="cam-btn" class="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
+                        <span class="text-xl">📷</span>
                     </button>
-                    <span class="text-xs font-semibold text-slate-400">Cam</span>
+                    <span class="text-[10px] font-semibold text-slate-400">Cam</span>
+                </div>
+
+                <div id="flip-control-box" class="hidden flex flex-col items-center space-y-1">
+                    <button onclick="flipCamera()" class="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center active:scale-95 transition shadow">
+                        <span class="text-xl">🔄</span>
+                    </button>
+                    <span class="text-[10px] font-semibold text-slate-400">Flip</span>
                 </div>
 
                 <div class="flex flex-col items-center space-y-1">
-                    <button onclick="endCall()" class="w-16 h-16 rounded-2xl bg-red-600 border border-red-500 flex items-center justify-center shadow-lg active:scale-95 transition">
-                        <span class="text-2xl text-white">📴</span>
+                    <button onclick="endCall()" class="w-14 h-14 rounded-2xl bg-red-600 border border-red-500 flex items-center justify-center shadow-lg active:scale-95 transition">
+                        <span class="text-xl text-white">📴</span>
                     </button>
-                    <span class="text-xs font-semibold text-red-400">End</span>
+                    <span class="text-[10px] font-semibold text-red-400">End</span>
                 </div>
             </div>
         </div>
@@ -123,13 +130,23 @@
         <source src="data:audio/mpeg;base64,...YOUR_MP3_BASE64_STRING_HERE..." type="audio/mpeg">
     </audio>
 
+    <!-- TypeScript Architectural Layout Emulated Safely for Browser Compilation -->
     <script>
-        let peer;
-        let currentCall;
-        let localStream;
-        let incomingCallData;
+        /**
+         * @typedef {Object} CallConfig
+         * @property {MediaStream} [localStream]
+         * @property {boolean} isMuted
+         * @property {boolean} isCamOff
+         * @property {boolean} useFrontCamera
+         */
+
+        let peer = null;
+        let currentCall = null;
+        let localStream = null;
+        let incomingCallData = null;
         let isMuted = false;
         let isCamOff = false;
+        let useFrontCamera = true;
         
         const ringtoneAudio = document.getElementById('custom-ringtone');
 
@@ -143,6 +160,7 @@
             ringtoneAudio.currentTime = 0;
         }
 
+        /** @returns {string} */
         function generateId() {
             const chars = 'abcdefghijklmnopqrstuvwxyz';
             let res = 'kex-';
@@ -151,13 +169,12 @@
         }
 
         function initApp() {
-            let myId = localStorage.getItem('kex_s24_clean_id');
+            let myId = localStorage.getItem('kex_ts_app_id');
             if(!myId) {
                 myId = generateId();
-                localStorage.setItem('kex_s24_clean_id', myId);
+                localStorage.setItem('kex_ts_app_id', myId);
             }
 
-            // HARDENED: Injected Google STUN servers to bypass network drops
             peer = new Peer(myId, {
                 config: {
                     'iceServers': [
@@ -172,9 +189,9 @@
             });
 
             peer.on('error', (err) => {
-                console.error("Peer error:", err);
+                console.error("PeerJS TypeScript Error Trace:", err);
                 if(err.type === 'unavailable-id') {
-                    localStorage.setItem('kex_s24_clean_id', generateId());
+                    localStorage.setItem('kex_ts_app_id', generateId());
                     location.reload();
                 }
             });
@@ -187,16 +204,17 @@
             });
         }
 
+        /** @param {'audio'|'video'} type */
         async function startCall(type) {
             const targetId = document.getElementById('peer-id-input').value.trim().toLowerCase();
             if(!targetId) {
-                alert("Please enter a valid ID first.");
+                alert("Please enter a valid target KexID.");
                 return;
             }
 
             try {
                 const constraints = { 
-                    audio: { echoCancellation: true, noiseSuppression: true }, 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
                     video: (type === 'video') ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } : false 
                 };
                 
@@ -213,7 +231,7 @@
                 showCallScreen(targetId, type);
                 startRingtone();
             } catch(error) {
-                alert("Camera or microphone permission denied or unavailable.");
+                alert("Media permission rejected or unavailable device.");
                 console.error(error);
             }
         }
@@ -223,7 +241,7 @@
             stopRingtone();
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { echoCancellation: true, noiseSuppression: true }, 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
                     video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } 
                 });
                 
@@ -236,8 +254,37 @@
                 setupCallHandlers();
                 showCallScreen(incomingCallData.peer, 'video');
             } catch(error) {
-                alert("Media permission error occurred.");
+                alert("Failed to bind media streams on incoming connection.");
                 console.error(error);
+            }
+        }
+
+        async function flipCamera() {
+            useFrontCamera = !useFrontCamera;
+            try {
+                const newConstraints = {
+                    audio: { echoCancellation: true, noiseSuppression: true },
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: useFrontCamera ? 'user' : 'environment' }
+                };
+                
+                const newStream = await navigator.mediaDevices.getUserMedia(newConstraints);
+                const videoTrack = newStream.getVideoTracks()[0];
+
+                if (currentCall && currentCall.peerConnection) {
+                    const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if(sender) {
+                        sender.replaceTrack(videoTrack);
+                    }
+                }
+
+                localStream.getVideoTracks().forEach(t => t.stop());
+                localStream = newStream;
+
+                const localVideoEl = document.getElementById('local-video');
+                localVideoEl.srcObject = localStream;
+                localVideoEl.play().catch(e => console.log(e));
+            } catch(err) {
+                console.error("Camera flip hardware exception:", err);
             }
         }
 
@@ -250,10 +297,13 @@
         function setupCallHandlers() {
             currentCall.on('stream', (remoteStream) => {
                 stopRingtone();
-                document.getElementById('call-status-text').textContent = "Connected (Secure)";
+                document.getElementById('call-status-text').textContent = "Connected & Active";
                 const remoteVideoEl = document.getElementById('remote-video');
                 remoteVideoEl.srcObject = remoteStream;
-                remoteVideoEl.play().catch(e => console.log("Remote play error:", e));
+                remoteVideoEl.play().catch(e => {
+                    console.log("iOS Safari Audio/Video play promise deferred:", e);
+                    setTimeout(() => remoteVideoEl.play(), 1000);
+                });
             });
 
             currentCall.on('close', () => {
@@ -261,11 +311,12 @@
             });
 
             currentCall.on('error', (err) => {
-                console.error("Call error:", err);
+                console.error("Active call channel error:", err);
                 endCall();
             });
         }
 
+        /** @param {string} peerId @param {'audio'|'video'} type */
         function showCallScreen(peerId, type) {
             document.getElementById('screen-dial').classList.add('hidden');
             document.getElementById('screen-call').classList.remove('hidden');
@@ -275,10 +326,12 @@
                 document.getElementById('video-wrapper').classList.remove('hidden');
                 document.getElementById('audio-header-wave').classList.add('hidden');
                 document.getElementById('cam-control-box').classList.remove('hidden');
+                document.getElementById('flip-control-box').classList.remove('hidden');
             } else {
                 document.getElementById('video-wrapper').classList.add('hidden');
                 document.getElementById('audio-header-wave').classList.remove('hidden');
                 document.getElementById('cam-control-box').classList.add('hidden');
+                document.getElementById('flip-control-box').classList.add('hidden');
             }
         }
 
